@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "hydroerosion:block/deep_pressure_intake"
+    },
+    "facing=east": {
+      "model": "hydroerosion:block/deep_pressure_intake",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "hydroerosion:block/deep_pressure_intake",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "hydroerosion:block/deep_pressure_intake",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "meta": {
+    "format_version": "4.9",
+    "model_format": "java_block",
+    "box_uv": false
+  },
+  "name": "reinforced_dam_concrete",
+  "model_identifier": "",
+  "visible_box": [
+    1,
+    1,
+    0
+  ],
+  "variable_placeholders": "",
+  "variable_placeholder_buttons": [],
+  "timeline_setups": [],
+  "unhandled_root_fields": {},
+  "resolution": {
+    "width": 32,
+    "height": 32
+  },
+  "elements": [
+    {
+      "name": "dam_concrete_block",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "e816b2da-4b81-5de1-bbfc-ee19e4f46762"
+    }
+  ],
+  "outliner": [
+    {
+      "name": "concrete_block",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "color": 0,
+      "uuid": "2cd9d068-59d5-516d-9db5-463c78d449a0",
+      "export": true,
+      "mirror_uv": false,
+      "isOpen": true,
+      "locked": false,
+      "visibility": true,
+      "autouv": 0,
+      "children": [
+        "e816b2da-4b81-5de1-bbfc-ee19e4f46762"
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "path": "src/main/resources/assets/hydroerosion/textures/block/reinforced_dam_concrete.png",
+      "name": "reinforced_dam_concrete.png",
+      "folder": "block",
+      "namespace": "hydroerosion",
+      "id": "0",
+      "particle": true,
+      "render_mode": "default",
+      "render_sides": "auto",
+      "frame_time": 1,
+      "frame_order_type": "loop",
+      "frame_order": "",
+      "frame_interpolate": false,
+      "visible": true,
+      "mode": "bitmap",
+      "saved": true,
+      "uuid": "b968907e-a187-5138-afd7-4789b3df56f2",
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAEbUlEQVR4nMWXyU4bQRCG28OwrycegAPiyXLKKY+RQw55JB4DISEOSEjsYAyYxdFX8TfUDGOkcElJ9oy7a/2ruro8+Pnr96SqqvK/qObr/Py86MRkMimrq6vl8vKyrKyslPF4HHvLy8tlbm6uXF1dlcFgUJaWlkJuZ2enPDw8lNfX15B9fHwMvrW1tTIcDoOP/bquGzl47+7uYr/CKIYwgAKM3d/fhxP8VvDt7a3c3NwE78bGRuxJOoDhzc3N2Ec5POhCJ/LowTDrOAKFAwjDyMbLy0uDBNFjkGg0iCIjk+Bjneh5itrCwkIYFR2eBITDi4uLbQcghFAsTPPz85GK5+fnltcoZk0iangxhnL25MEgQfAbwjB8BAxFDaCYyPngxNHRUcm0vb0dyhBCITy5cEWONOL48fFxS35vb69cX18HMuyD6Gg0endgOBzGBo6o+Nv3H/Hc398vZfw3nxgAYnMrqZg1I+3Ksw8SBmBKKyMwX9ZAl56enmJfJMwhhGPIsYaBWeSeelopwABeqjg87wiTX49pJhBkDXREoCsP7JwSeDkJ2ImUyoACosAJcgZsmaz0PpRwigDQgYFZ8hi1CEWjzsr5UM3AgxHzzRMiOmsBQxLrKEaGd46jPQVdPEGPfeoAJExBxdf6+no4gZDRYFRBBHRMAznXrMNjbm9vb6PK0cWafcH68bQ1CMAsvEYszHhsl6PDoQw+nJAIgBZNClBMX0CPOYffGsgtu5UCIrRbUZQUivDyTsQos9ejVGLNI4o8HwMgNeyLpC2+dQwH08iJFiVABSNGSQdKRAhDRLO1tdVywOJkL6eKJ4ZBBh7uE5qSdVXzdXFxUb5COHhwcBDvKO0j6uFTHWXaKr9Ch4eHZXd3t9WW/5VqvvKFozKgJkKPC3VCbfCbZy5CKlu4yT9ps2DhRxdIUKweb9Jydnb2fhtawRQjeYSRymbP/qBgDBIpahylTjAGv/mHF6KIMU4NqL91DCfTs4+nPD0VvuOcV638GQEbGTISshS1M4K3rQHbyCq+gBRviQLPePfqNXKbCXs4CsQSfcReYUf0BCFv9xNh9ukVDQKOTI5Pffe56UCQfGYHMOpQg6MnJycf5EECJPPU1DjgJWTx9N3nRkKedUKyw4lSnzxyplZkGweA1H5u4XQJYZuSrTunwE4460gSJDYccB3vapsIghnK7n0OMhShLTgXnCMdDs6aB4jaVg+PE1XlpkcER5r73M+08kkBRhw0swMott32yYMsR9H/GiJdhxfT6FEOTF63Dp8Yp4c7+eboIWR0Xl6RyCl01PfENA54dQKjuTFneVB1sLSSswPIu+Z7vt6z4zhhT6hEgAsJBhsMRdX9R0RUfHjP17Gjls6iA13+AfGGZd0glK/44ofNByVUtVMRH/+22evzcbPVsoYBr2bWeKILOXQ4F6Kz9c9oNBpFgWCcTXq1o7dzoRcVvPlfkWhlWDGMPhoPvE7c6LVYW40Ib52AMuXBs49E4fT09MPerPmgK/8H821fYMurj3wAAAAASUVORK5CYII="
+    }
+  ]
+}

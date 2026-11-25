@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "hydroerosion:block/reinforced_dam_concrete"
+    }
+  }
+}

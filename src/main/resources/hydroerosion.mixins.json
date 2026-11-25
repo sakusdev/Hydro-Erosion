@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.hydroerosion.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "hydroerosion.refmap.json",
+  "mixins": [
+    "FlowingFluidMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

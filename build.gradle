@@ -1,0 +1,508 @@
+import groovy.json.JsonOutput
+import java.awt.Color
+import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
+
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'org.spongepowered.mixin' version '0.7.+'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = "${mod_id}-1.20.1"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'info'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            property 'mixin.env.disableRefMap', 'true'
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        server {
+            property 'forge.enabledGameTestNamespaces', mod_id
+            args '--nogui'
+        }
+    }
+}
+
+mixin {
+    add sourceSets.main, "${mod_id}.refmap.json"
+    config "${mod_id}.mixins.json"
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'CreateMaven'
+        url = 'https://maven.createmod.net'
+    }
+    maven {
+        name = 'RegistrateMirror'
+        url = 'https://maven.ithundxr.dev/mirror'
+    }
+    maven {
+        name = 'ModMaven'
+        url = 'https://modmaven.dev/'
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    compileOnly(fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
+        transitive = false
+    })
+    compileOnly fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
+    compileOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}")
+    compileOnly fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}")
+
+    compileOnly fg.deobf("mekanism:Mekanism:${mekanism_version}:api")
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+tasks.register('generateModAssets') {
+    group = 'hydroerosion'
+    description = 'Procedurally generates 16x16 textures, models, blockstates, recipes, loot tables, and lang files.'
+
+    def outDir = file('src/generated/resources')
+    outputs.dir(outDir)
+
+    doLast {
+        System.setProperty('java.awt.headless', 'true')
+
+        def writeJson = { String relPath, Object data ->
+            if (file("src/main/resources/${relPath}").exists()) {
+                return
+            }
+            def target = new File(outDir, relPath)
+            target.parentFile.mkdirs()
+            target.setText(JsonOutput.prettyPrint(JsonOutput.toJson(data)), 'UTF-8')
+        }
+
+        def writePng = { String relPath, Closure drawFn ->
+            if (file("src/main/resources/${relPath}").exists()) {
+                return
+            }
+            def img = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB)
+            drawFn(img)
+            def target = new File(outDir, relPath)
+            target.parentFile.mkdirs()
+            ImageIO.write(img, 'png', target)
+        }
+
+        // Item texture: pressure_gauge (brass rim, deep blue dial, red needle)
+        writePng("assets/${mod_id}/textures/item/pressure_gauge.png") { BufferedImage img ->
+            int transparent = 0x00000000
+            int rimOuter = new Color(110, 74, 24).getRGB()
+            int rimInner = new Color(214, 162, 62).getRGB()
+            int dial = new Color(24, 58, 96).getRGB()
+            int dialLight = new Color(46, 108, 168).getRGB()
+            int needle = new Color(228, 54, 48).getRGB()
+            int centerPin = new Color(235, 235, 240).getRGB()
+
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    double dx = x - 7.5
+                    double dy = y - 7.5
+                    double dist = Math.sqrt(dx * dx + dy * dy)
+                    if (dist > 6.6) {
+                        img.setRGB(x, y, transparent)
+                    } else if (dist > 5.4) {
+                        img.setRGB(x, y, rimOuter)
+                    } else if (dist > 4.4) {
+                        img.setRGB(x, y, rimInner)
+                    } else {
+                        img.setRGB(x, y, (x + y) % 3 == 0 ? dialLight : dial)
+                    }
+                }
+            }
+            // Top valve stem
+            for (int x = 6; x <= 9; x++) {
+                img.setRGB(x, 0, rimOuter)
+                img.setRGB(x, 1, rimInner)
+            }
+            // Needle pointing upper-right
+            img.setRGB(8, 7, needle)
+            img.setRGB(9, 6, needle)
+            img.setRGB(10, 5, needle)
+            img.setRGB(11, 4, needle)
+            img.setRGB(7, 8, centerPin)
+            img.setRGB(8, 8, centerPin)
+        }
+
+        // Item model: pressure_gauge
+        writeJson("assets/${mod_id}/models/item/pressure_gauge.json", [
+                parent  : 'minecraft:item/generated',
+                textures: [layer0: "${mod_id}:item/pressure_gauge"]
+        ])
+
+        // Block texture: reinforced_dam_concrete (industrial concrete + rebar rivets)
+        writePng("assets/${mod_id}/textures/block/reinforced_dam_concrete.png") { BufferedImage img ->
+            def rng = new Random(4201L)
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    int n = rng.nextInt(15) - 7
+                    boolean border = (x == 0 || y == 0 || x == 15 || y == 15)
+                    boolean seam = (x == 8 || y == 8)
+                    boolean rivet = ((x == 2 || x == 13) && (y == 2 || y == 13))
+                    int base = border ? 72 : (seam ? 84 : 104 + n)
+                    if (rivet) {
+                        img.setRGB(x, y, new Color(156, 166, 178).getRGB())
+                    } else {
+                        img.setRGB(x, y, new Color(base, base + 3, base + 7).getRGB())
+                    }
+                }
+            }
+        }
+
+        // Reinforced Dam Concrete blockstate, models, loot table, tags, recipe
+        writeJson("assets/${mod_id}/blockstates/reinforced_dam_concrete.json", [
+                variants: ['': [model: "${mod_id}:block/reinforced_dam_concrete"]]
+        ])
+        writeJson("assets/${mod_id}/models/block/reinforced_dam_concrete.json", [
+                parent  : 'minecraft:block/cube_all',
+                textures: [all: "${mod_id}:block/reinforced_dam_concrete"]
+        ])
+        writeJson("assets/${mod_id}/models/item/reinforced_dam_concrete.json", [
+                parent: "${mod_id}:block/reinforced_dam_concrete"
+        ])
+        writeJson("data/${mod_id}/loot_tables/blocks/reinforced_dam_concrete.json", [
+                type : 'minecraft:block',
+                pools: [[
+                                rolls     : 1,
+                                entries   : [[type: 'minecraft:item', name: "${mod_id}:reinforced_dam_concrete"]],
+                                conditions: [[condition: 'minecraft:survives_explosion']]
+                        ]]
+        ])
+
+        // Block texture: water_pressure_sensor (unpowered & powered)
+        ['off', 'on'].each { String mode ->
+            boolean on = (mode == 'on')
+            writePng("assets/${mod_id}/textures/block/water_pressure_sensor_${mode}.png") { BufferedImage img ->
+                for (int y = 0; y < 16; y++) {
+                    for (int x = 0; x < 16; x++) {
+                        boolean frame = (x <= 1 || x >= 14 || y <= 1 || y >= 14)
+                        boolean core = (x >= 5 && x <= 10 && y >= 5 && y <= 10)
+                        if (frame) {
+                            img.setRGB(x, y, new Color(78, 84, 92).getRGB())
+                        } else if (core) {
+                            img.setRGB(x, y, on ? new Color(240, 48, 48).getRGB() : new Color(36, 118, 175).getRGB())
+                        } else {
+                            img.setRGB(x, y, new Color(138, 144, 152).getRGB())
+                        }
+                    }
+                }
+            }
+        }
+        writeJson("assets/${mod_id}/models/block/water_pressure_sensor_off.json", [
+                parent  : 'minecraft:block/cube_all',
+                textures: [all: "${mod_id}:block/water_pressure_sensor_off"]
+        ])
+        writeJson("assets/${mod_id}/models/block/water_pressure_sensor_on.json", [
+                parent  : 'minecraft:block/cube_all',
+                textures: [all: "${mod_id}:block/water_pressure_sensor_on"]
+        ])
+        def sensorVariants = [:]
+        (0..15).each { int p ->
+            sensorVariants["power=${p}"] = [model: "${mod_id}:block/water_pressure_sensor_${p > 0 ? 'on' : 'off'}"]
+        }
+        writeJson("assets/${mod_id}/blockstates/water_pressure_sensor.json", [variants: sensorVariants])
+        writeJson("assets/${mod_id}/models/item/water_pressure_sensor.json", [
+                parent: "${mod_id}:block/water_pressure_sensor_off"
+        ])
+        writeJson("data/${mod_id}/loot_tables/blocks/water_pressure_sensor.json", [
+                type : 'minecraft:block',
+                pools: [[
+                                rolls     : 1,
+                                entries   : [[type: 'minecraft:item', name: "${mod_id}:water_pressure_sensor"]],
+                                conditions: [[condition: 'minecraft:survives_explosion']]
+                        ]]
+        ])
+        writeJson("data/${mod_id}/recipes/water_pressure_sensor.json", [
+                type   : 'minecraft:crafting_shaped',
+                pattern: ['GCG', 'RPR', 'CCC'],
+                key    : [
+                        G: [item: 'minecraft:glass_pane'],
+                        C: [item: 'minecraft:copper_ingot'],
+                        R: [item: 'minecraft:redstone'],
+                        P: [item: "${mod_id}:pressure_gauge"]
+                ],
+                result : [item: "${mod_id}:water_pressure_sensor", count: 1]
+        ])
+
+        // Block texture: deep_pressure_intake
+        writePng("assets/${mod_id}/textures/block/deep_pressure_intake.png") { BufferedImage img ->
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    boolean frame = (x <= 1 || x >= 14 || y <= 1 || y >= 14)
+                    boolean grate = (!frame && (x % 3 == 0 || y % 3 == 0))
+                    if (frame) {
+                        img.setRGB(x, y, new Color(46, 72, 108).getRGB())
+                    } else if (grate) {
+                        img.setRGB(x, y, new Color(24, 34, 48).getRGB())
+                    } else {
+                        img.setRGB(x, y, new Color(72, 138, 198).getRGB())
+                    }
+                }
+            }
+        }
+        writeJson("assets/${mod_id}/blockstates/deep_pressure_intake.json", [
+                variants: ['': [model: "${mod_id}:block/deep_pressure_intake"]]
+        ])
+        writeJson("assets/${mod_id}/models/block/deep_pressure_intake.json", [
+                parent  : 'minecraft:block/cube_all',
+                textures: [all: "${mod_id}:block/deep_pressure_intake"]
+        ])
+        writeJson("assets/${mod_id}/models/item/deep_pressure_intake.json", [
+                parent: "${mod_id}:block/deep_pressure_intake"
+        ])
+        writeJson("data/${mod_id}/loot_tables/blocks/deep_pressure_intake.json", [
+                type : 'minecraft:block',
+                pools: [[
+                                rolls     : 1,
+                                entries   : [[type: 'minecraft:item', name: "${mod_id}:deep_pressure_intake"]],
+                                conditions: [[condition: 'minecraft:survives_explosion']]
+                        ]]
+        ])
+        writeJson("data/${mod_id}/recipes/deep_pressure_intake.json", [
+                type   : 'minecraft:crafting_shaped',
+                pattern: ['IBI', 'BDB', 'IBI'],
+                key    : [
+                        I: [item: 'minecraft:iron_ingot'],
+                        B: [item: 'minecraft:iron_bars'],
+                        D: [item: "${mod_id}:reinforced_dam_concrete"]
+                ],
+                result : [item: "${mod_id}:deep_pressure_intake", count: 1]
+        ])
+
+        // Item texture & model: high_pressure_upgrade
+        writePng("assets/${mod_id}/textures/item/high_pressure_upgrade.png") { BufferedImage img ->
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    if (x < 2 || x > 13 || y < 2 || y > 13) {
+                        img.setRGB(x, y, 0x00000000)
+                    } else if (x == 2 || x == 13 || y == 2 || y == 13) {
+                        img.setRGB(x, y, new Color(214, 168, 48).getRGB())
+                    } else if (x >= 5 && x <= 10 && y >= 5 && y <= 10) {
+                        img.setRGB(x, y, new Color(46, 212, 232).getRGB())
+                    } else {
+                        img.setRGB(x, y, new Color(54, 62, 74).getRGB())
+                    }
+                }
+            }
+        }
+        writeJson("assets/${mod_id}/models/item/high_pressure_upgrade.json", [
+                parent  : 'minecraft:item/generated',
+                textures: [layer0: "${mod_id}:item/high_pressure_upgrade"]
+        ])
+        writeJson("data/${mod_id}/recipes/high_pressure_upgrade.json", [
+                type   : 'minecraft:crafting_shaped',
+                pattern: [' G ', 'IDI', ' R '],
+                key    : [
+                        G: [item: 'minecraft:gold_ingot'],
+                        I: [item: 'minecraft:iron_ingot'],
+                        D: [item: 'minecraft:diamond'],
+                        R: [item: 'minecraft:redstone_block']
+                ],
+                result : [item: "${mod_id}:high_pressure_upgrade", count: 1]
+        ])
+
+        // Block textures, directional blockstate, models, loot table, conditional recipe: high_pressure_turbine (Create compat)
+        writePng("assets/${mod_id}/textures/block/high_pressure_turbine_side.png") { BufferedImage img ->
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    boolean brassBand = (y <= 2 || y >= 13 || x == 0 || x == 15)
+                    img.setRGB(x, y, brassBand ? new Color(204, 152, 54).getRGB() : new Color(76, 82, 90).getRGB())
+                }
+            }
+        }
+        writePng("assets/${mod_id}/textures/block/high_pressure_turbine_front.png") { BufferedImage img ->
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    boolean frame = (x <= 1 || x >= 14 || y <= 1 || y >= 14)
+                    boolean axle = (x >= 6 && x <= 9 && y >= 6 && y <= 9)
+                    boolean blade = (x == y || x + y == 15)
+                    if (frame) {
+                        img.setRGB(x, y, new Color(204, 152, 54).getRGB())
+                    } else if (axle) {
+                        img.setRGB(x, y, new Color(196, 202, 210).getRGB())
+                    } else if (blade) {
+                        img.setRGB(x, y, new Color(58, 168, 224).getRGB())
+                    } else {
+                        img.setRGB(x, y, new Color(46, 52, 60).getRGB())
+                    }
+                }
+            }
+        }
+        writeJson("assets/${mod_id}/models/block/high_pressure_turbine.json", [
+                parent  : 'minecraft:block/orientable',
+                textures: [
+                        top  : "${mod_id}:block/high_pressure_turbine_side",
+                        front: "${mod_id}:block/high_pressure_turbine_front",
+                        side : "${mod_id}:block/high_pressure_turbine_side"
+                ]
+        ])
+        writeJson("assets/${mod_id}/blockstates/high_pressure_turbine.json", [
+                variants: [
+                        'facing=north': [model: "${mod_id}:block/high_pressure_turbine"],
+                        'facing=south': [model: "${mod_id}:block/high_pressure_turbine", y: 180],
+                        'facing=west' : [model: "${mod_id}:block/high_pressure_turbine", y: 270],
+                        'facing=east' : [model: "${mod_id}:block/high_pressure_turbine", y: 90],
+                        'facing=up'   : [model: "${mod_id}:block/high_pressure_turbine", x: 270],
+                        'facing=down' : [model: "${mod_id}:block/high_pressure_turbine", x: 90]
+                ]
+        ])
+        writeJson("assets/${mod_id}/models/item/high_pressure_turbine.json", [
+                parent: "${mod_id}:block/high_pressure_turbine"
+        ])
+        writeJson("data/${mod_id}/recipes/high_pressure_turbine.json", [
+                type      : 'minecraft:crafting_shaped',
+                conditions: [[type: 'forge:mod_loaded', modid: 'create']],
+                pattern   : ['CBC', 'ISI', 'CDC'],
+                key       : [
+                        C: [item: 'minecraft:copper_ingot'],
+                        B: [item: 'minecraft:iron_bars'],
+                        I: [item: 'minecraft:iron_ingot'],
+                        S: [item: 'create:shaft'],
+                        D: [item: "${mod_id}:reinforced_dam_concrete"]
+                ],
+                result    : [item: "${mod_id}:high_pressure_turbine", count: 1]
+        ])
+
+        writeJson("data/minecraft/tags/blocks/mineable/pickaxe.json", [
+                replace: false,
+                values : [
+                        "${mod_id}:reinforced_dam_concrete",
+                        "${mod_id}:water_pressure_sensor",
+                        "${mod_id}:deep_pressure_intake",
+                        [id: "${mod_id}:high_pressure_turbine", required: false]
+                ]
+        ])
+        writeJson("data/minecraft/tags/blocks/needs_iron_tool.json", [
+                replace: false,
+                values : [
+                        "${mod_id}:reinforced_dam_concrete",
+                        "${mod_id}:deep_pressure_intake",
+                        [id: "${mod_id}:high_pressure_turbine", required: false]
+                ]
+        ])
+        writeJson("data/${mod_id}/recipes/reinforced_dam_concrete.json", [
+                type   : 'minecraft:crafting_shaped',
+                pattern: ['GBG', 'ISI', 'GBG'],
+                key    : [
+                        G: [item: 'minecraft:gravel'],
+                        B: [item: 'minecraft:iron_bars'],
+                        I: [item: 'minecraft:iron_ingot'],
+                        S: [item: 'minecraft:sand']
+                ],
+                result : [item: "${mod_id}:reinforced_dam_concrete", count: 8]
+        ])
+
+        // Crafting recipe: pressure_gauge
+        writeJson("data/${mod_id}/recipes/pressure_gauge.json", [
+                type   : 'minecraft:crafting_shaped',
+                pattern: [' G ', 'CRC', ' I '],
+                key    : [
+                        G: [item: 'minecraft:glass_pane'],
+                        C: [item: 'minecraft:copper_ingot'],
+                        R: [item: 'minecraft:redstone'],
+                        I: [item: 'minecraft:iron_ingot']
+                ],
+                result : [item: "${mod_id}:pressure_gauge", count: 1]
+        ])
+
+        // Localization: en_us & ja_jp
+        writeJson("assets/${mod_id}/lang/en_us.json", [
+                'itemGroup.hydroerosion'                  : 'Hydro-Erosion',
+                "item.${mod_id}.pressure_gauge"           : 'Water Pressure Gauge',
+                "item.${mod_id}.high_pressure_upgrade"    : 'High-Pressure Hydraulic Upgrade',
+                "tooltip.${mod_id}.high_pressure_upgrade" : 'Doubles coolant & Mekanism Heavy Water bonus at >= 40m depth.',
+                "block.${mod_id}.reinforced_dam_concrete" : 'Reinforced Dam Concrete',
+                "block.${mod_id}.water_pressure_sensor"   : 'Water Pressure Sensor',
+                "block.${mod_id}.deep_pressure_intake"    : 'Deep Pressure Intake',
+                "block.${mod_id}.high_pressure_turbine"   : 'High-Pressure Hydro Turbine'
+        ])
+        writeJson("assets/${mod_id}/lang/ja_jp.json", [
+                'itemGroup.hydroerosion'                  : 'Hydro-Erosion（水力・土木工学）',
+                "item.${mod_id}.pressure_gauge"           : '水圧計',
+                "item.${mod_id}.high_pressure_upgrade"    : '高水圧アップグレード',
+                "tooltip.${mod_id}.high_pressure_upgrade" : '水深40m以上で冷却水供給・Mekanism重水生成ボーナスを2倍化します。',
+                "block.${mod_id}.reinforced_dam_concrete" : '鉄筋ダムコンクリート',
+                "block.${mod_id}.water_pressure_sensor"   : '水位・水圧センサー',
+                "block.${mod_id}.deep_pressure_intake"    : '深層高圧取水口',
+                "block.${mod_id}.high_pressure_turbine"   : '高水圧タービン'
+        ])
+    }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    dependsOn 'generateModAssets'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            forge_version          : forge_version,
+            forge_version_range    : forge_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    dependsOn 'generateModAssets'
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'MixinConfigs'            : "${mod_id}.mixins.json"
+        ])
+    }
+    finalizedBy 'reobfJar'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
