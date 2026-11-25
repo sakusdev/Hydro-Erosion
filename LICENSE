@@ -19,3 +19,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+Scope Note (Art Assets & 3D Models):
+The MIT License above applies to the Java source code, Gradle build scripts,
+and data definitions. All 3D models, Blockbench project files
+(`blockbench_models/**`), and textures/models under
+`src/main/resources/assets/hydroerosion/` (and `src/generated/resources/assets/hydroerosion/`)
+are licensed separately under Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+International (CC BY-NC-SA 4.0). See `LICENSE-ASSETS` for details.
